@@ -1,0 +1,467 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS (Based on ERD Constraints)
+// ==========================================
+
+enum Scope {
+  NO
+  ALL
+  OWN
+}
+
+enum PositionType {
+  MANAGER
+  STAF
+  MAGANG
+}
+
+enum EmploymentType {
+  PKWTT
+  PKWT
+  MAGANG
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Channel {
+  EMAIL
+}
+
+enum ImportStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AttendanceType {
+  HADIR
+  CUTI
+  IZIN
+  UNPAID_LEAVE
+}
+
+enum AttendanceStatus {
+  TERPENUHI
+  TIDAK_TERPENUHI
+}
+
+enum PeriodStatus {
+  DRAFT
+  CALCULATED
+  LOCKED
+}
+
+enum ActionType {
+  LOGIN
+  LOGOUT
+  CREATE
+  READ
+  UPDATE
+  DELETE
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  description String?  @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@map("roles")
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  description String?  @db.Text
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  role_permissions RolePermission[]
+
+  @@map("modules")
+}
+
+model RolePermission {
+  id           Int      @id @default(autoincrement())
+  role_id      Int
+  module_id    Int
+  can_access   Boolean  @default(false)
+  can_create   Boolean  @default(false)
+  read_scope   Scope    @default(NO)
+  update_scope Scope    @default(NO)
+  delete_scope Scope    @default(NO)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  role   Role   @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [module_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, module_id])
+  @@map("role_permissions")
+}
+
+model Department {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  name       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  employees Employee[]
+
+  @@map("departments")
+}
+
+model Position {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  name          String
+  position_type PositionType
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+
+  employees Employee[]
+
+  @@map("positions")
+}
+
+model Province {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  name       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  regencies Regency[]
+
+  @@map("provinces")
+}
+
+model Regency {
+  id          Int      @id @default(autoincrement())
+  province_id Int
+  code        String   @unique
+  name        String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  province  Province   @relation(fields: [province_id], references: [id], onDelete: Cascade)
+  districts District[]
+
+  @@map("regencies")
+}
+
+model District {
+  id         Int      @id @default(autoincrement())
+  regency_id Int
+  code       String   @unique
+  name       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  regency   Regency    @relation(fields: [regency_id], references: [id], onDelete: Cascade)
+  employees Employee[]
+
+  @@map("districts")
+}
+
+model Employee {
+  id              Int            @id @default(autoincrement())
+  nip             String         @unique
+  name            String
+  email           String         @unique
+  phone           String?
+  photo_path      String?
+  birth_place     String?
+  birth_date      DateTime?      @db.Date
+  marital_status  String?
+  children_count  Int            @default(0)
+  joined_at       DateTime?      @db.Date
+  position_id     Int
+  department_id   Int
+  employment_type EmploymentType
+  gender          String?
+  distance_km     Float?
+  district_id     Int
+  full_address    String?        @db.Text
+  status          EmployeeStatus @default(ACTIVE)
+  created_by      Int?
+  updated_by      Int?
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  deleted_at      DateTime?
+
+  position   Position   @relation(fields: [position_id], references: [id], onDelete: Restrict)
+  department Department @relation(fields: [department_id], references: [id], onDelete: Restrict)
+  district   District   @relation(fields: [district_id], references: [id], onDelete: Restrict)
+
+  users                       User[]
+  employee_educations         EmployeeEducation[]
+  attendances                 Attendance[]
+  attendance_summaries        AttendanceSummary[]
+  transport_allowance_details TransportAllowanceDetail[]
+
+  @@map("employees")
+}
+
+model EmployeeEducation {
+  id              Int      @id @default(autoincrement())
+  employee_id     Int
+  education_level String
+  school_name     String
+  graduation_year Int
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@map("employee_educations")
+}
+
+model User {
+  id                  Int        @id @default(autoincrement())
+  employee_id         Int?
+  role_id             Int
+  name                String
+  username            String     @unique
+  email               String?    @unique
+  cellphone           String?    @unique
+  password            String
+  status              UserStatus @default(ACTIVE)
+  password_changed_at DateTime?
+  last_login_at       DateTime?
+  last_logout_at      DateTime?
+  remember_token      String?
+  created_at          DateTime   @default(now())
+  updated_at          DateTime   @updatedAt
+  deleted_at          DateTime?
+
+  employee Employee? @relation(fields: [employee_id], references: [id], onDelete: SetNull)
+  role     Role      @relation(fields: [role_id], references: [id], onDelete: Restrict)
+
+  login_otps                   LoginOtp[]
+  user_sessions                UserSession[]
+  attendance_imports           AttendanceImport[]
+  transport_allowance_settings TransportAllowanceSetting[]
+  transport_allowance_periods  TransportAllowancePeriod[]
+  activity_logs                ActivityLog[]
+
+  @@map("users")
+}
+
+model LoginOtp {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  otp_hash    String
+  channel     Channel   @default(EMAIL)
+  sent_to     String
+  expires_at  DateTime
+  verified_at DateTime?
+  used_at     DateTime?
+  ip_address  String?
+  user_agent  String?   @db.Text
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("login_otps")
+}
+
+model UserSession {
+  id               Int       @id @default(autoincrement())
+  user_id          Int
+  session_token    String    @unique
+  remember_me      Boolean   @default(false)
+  ip_address       String?
+  user_agent       String?   @db.Text
+  last_activity_at DateTime?
+  expires_at       DateTime
+  logged_out_at    DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model AttendanceImport {
+  id                Int          @id @default(autoincrement())
+  user_id           Int
+  original_filename String
+  period_year       Int
+  period_month      Int
+  status            ImportStatus @default(QUEUED)
+  total_rows        Int          @default(0)
+  processed_rows    Int          @default(0)
+  error_message     String?      @db.Text
+  started_at        DateTime?
+  finished_at       DateTime?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  attendances Attendance[]
+
+  @@map("attendance_imports")
+}
+
+model Attendance {
+  id                   Int              @id @default(autoincrement())
+  employee_id          Int
+  attendance_import_id Int?
+  attendance_date      DateTime         @db.Date
+  checkin_at           DateTime?
+  checkout_at          DateTime?
+  checkin_location     String?
+  checkout_location    String?
+  attendance_type      AttendanceType
+  duration_hours       Float?
+  status               AttendanceStatus
+  verification_status  String?
+  verified_by_role     String?
+  remarks              String?          @db.Text
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
+
+  employee          Employee          @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  attendance_import AttendanceImport? @relation(fields: [attendance_import_id], references: [id], onDelete: SetNull)
+
+  @@unique([employee_id, attendance_date])
+  @@map("attendances")
+}
+
+model AttendanceSummary {
+  id                 Int       @id @default(autoincrement())
+  employee_id        Int
+  period_year        Int
+  period_month       Int
+  hadir              Int       @default(0)
+  cuti               Int       @default(0)
+  kuota_cuti         Int       @default(0)
+  izin               Int       @default(0)
+  kuota_izin         Int       @default(0)
+  unpaid_leave       Int       @default(0)
+  kuota_unpaid_leave Int       @default(0)
+  status_hadir       String?
+  calculated_at      DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([employee_id, period_year, period_month])
+  @@map("attendance_summaries")
+}
+
+model TransportAllowanceSetting {
+  id              Int      @id @default(autoincrement())
+  base_fare       Float
+  effective_start DateTime
+  min_km          Float
+  max_km          Float
+  is_active       Boolean  @default(true)
+  created_by      Int?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user User? @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@map("transport_allowance_settings")
+}
+
+model TransportAllowancePeriod {
+  id               Int          @id @default(autoincrement())
+  period_year      Int
+  period_month     Int
+  total_recipients Int          @default(0)
+  total_amount     Float        @default(0)
+  status           PeriodStatus @default(DRAFT)
+  calculated_by    Int?
+  calculated_at    DateTime?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  user    User?                      @relation(fields: [calculated_by], references: [id], onDelete: SetNull)
+  details TransportAllowanceDetail[]
+
+  @@unique([period_year, period_month])
+  @@map("transport_allowance_periods")
+}
+
+model TransportAllowanceDetail {
+  id                 Int      @id @default(autoincrement())
+  period_id          Int
+  employee_id        Int
+  base_fare          Float
+  original_km        Float
+  rounded_km         Float
+  attendance_days    Int
+  nominal            Float
+  eligibility_status String
+  calculation_note   String?  @db.Text
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  period   TransportAllowancePeriod @relation(fields: [period_id], references: [id], onDelete: Cascade)
+  employee Employee                 @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([period_id, employee_id])
+  @@map("transport_allowance_details")
+}
+
+model ActivityLog {
+  id           Int        @id @default(autoincrement())
+  user_id      Int?
+  module_code  String?
+  action       ActionType
+  description  String?    @db.Text
+  subject_type String?
+  subject_id   String?
+  ip_address   String?
+  user_agent   String?    @db.Text
+  old_values   Json?
+  new_values   Json?
+  url          String?
+  method       String?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@map("activity_logs")
+}
