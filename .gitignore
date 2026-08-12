@@ -73,6 +73,7 @@ AGENTS.md
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+yarn.lock
 
 package-lock.json
 .claude-flow/
