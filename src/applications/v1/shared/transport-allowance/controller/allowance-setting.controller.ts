@@ -1,8 +1,6 @@
 import {
-  Body,
   Controller,
   Get,
-  Post,
   Request,
   UseFilters,
   UseGuards,
@@ -13,24 +11,18 @@ import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
 import { FilterException } from 'src/commons/v1/interceptors/filter-exception';
 import { ResponseInterceptor } from 'src/commons/v1/interceptors/response.interceptor';
 import { RolesGuard } from 'src/commons/v1/jwt/roles.guard';
-import { EmployeeService } from '../service/employee.service';
-import { CreateEmployeeDto } from '../dtos/create-employee.dto';
+import { AllowanceSettingService } from '../service/allowance-setting.service';
 
 @Controller({ path: '', version: '1' })
 @UseInterceptors(ResponseInterceptor)
 @UseFilters(FilterException)
-export class EmployeeController {
-  constructor(private readonly employeeService: EmployeeService) {}
+export class AllowanceSettingController {
+  constructor(private readonly allowanceSettingService: AllowanceSettingService) { }
 
-  @Get('all')
+  @Get('setting')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async getEmployee(@Request() req: JwtDto) {
-    return await this.employeeService.getEmployee(req);
-  }
-
-  @Post('create')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async createEmployee(@Request() req: JwtDto, @Body() body: CreateEmployeeDto) {
-    return await this.employeeService.createEmployee(req, body);
+  // @Roles(Role.SUPERADMIN)
+  async getMe(@Request() req: JwtDto) {
+    return await this.allowanceSettingService.getAllowanceSetting(req);
   }
 }

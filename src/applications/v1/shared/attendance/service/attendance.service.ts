@@ -21,6 +21,9 @@ export class AttendanceService {
           lte: endOfPrevMonth,
         },
       },
+      include: {
+        employee: true
+      }
     });
 
     if (!data) {
