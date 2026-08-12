@@ -2,18 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtStrategy } from 'src/commons/v1/jwt/jwt.strategy';
 import { NotifyEngineService } from 'src/commons/v1/notify/notify-engine.service';
-import { SuperAdminAuthenticationController } from '../controller/superadmin-authentication.controller';
-import { SuperAdminAuthenticationService } from '../service/superadmin-authentication.service';
+import { AuthenticationController } from '../controller/authentication.controller';
+import { AuthenticationService } from '../service/authentication.service';
 
 @Module({
   imports: [
     ConfigModule,
   ],
-  controllers: [SuperAdminAuthenticationController],
+  controllers: [AuthenticationController],
   providers: [
-    SuperAdminAuthenticationService,
+    AuthenticationService,
     NotifyEngineService,
     JwtStrategy,
   ],
 })
-export class SuperAdminAuthenticationModule { }
+export class AuthenticationModule { }

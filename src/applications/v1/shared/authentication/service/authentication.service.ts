@@ -3,14 +3,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { DatabaseService } from 'src/commons/v1/database/database.service';
-import { JwtSuperAdminDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
+import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
 import { exclude } from 'src/commons/v1/helpers/exclude';
 import { NotifyEngineService } from 'src/commons/v1/notify/notify-engine.service';
-import { SuperAdminPostSignInDto } from '../dtos/superadmin-post-signin.dto';
-import { SuperAdminPostSignInVerifyOtpDto } from '../dtos/superadmin-post-signinVerifyOtp.dto';
+import { PostSignInDto } from '../dtos/post-signin.dto';
+import { PostSignInVerifyOtpDto } from '../dtos/post-signinVerifyOtp.dto';
 
 @Injectable()
-export class SuperAdminAuthenticationService {
+export class AuthenticationService {
   constructor(private readonly dataBaseService: DatabaseService,
     private readonly jwtService: JwtService,
     private readonly notify: NotifyEngineService
@@ -46,7 +46,7 @@ export class SuperAdminAuthenticationService {
   }
 
 
-  async signIn(body: SuperAdminPostSignInDto) {
+  async signIn(body: PostSignInDto) {
     const { email, phone, phone_code, password } = body;
 
     if (!email && (!phone || !phone_code)) {
@@ -95,7 +95,7 @@ export class SuperAdminAuthenticationService {
   }
 
   async signInGenerateOtp(
-    body: SuperAdminPostSignInDto,
+    body: PostSignInDto,
     lang: string,
   ) {
     const { email, phone, phone_code, password } = body;
@@ -162,7 +162,7 @@ export class SuperAdminAuthenticationService {
     };
   }
 
-  async signInVerifyOtp(body: SuperAdminPostSignInVerifyOtpDto) {
+  async signInVerifyOtp(body: PostSignInVerifyOtpDto) {
     const email = body.email;
     const user = await this.dataBaseService.user.findUnique({
       where: { email },
@@ -183,7 +183,7 @@ export class SuperAdminAuthenticationService {
         },
       });
 
-    if (!verificationCode) {
+    if (!verificationCode || verificationCode.otp_hash !== body.otp_code) {
       throw new BadRequestException('translation.VALIDATION.INVALID_OTP');
     }
 
@@ -219,7 +219,7 @@ export class SuperAdminAuthenticationService {
 
 
 
-  async getMe(req: JwtSuperAdminDto) {
+  async getMe(req: JwtDto) {
     const id = req.user.id;
     const user = await this.dataBaseService.user.findUnique({
       where: { id },

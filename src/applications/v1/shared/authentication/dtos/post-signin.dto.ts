@@ -1,6 +1,6 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 
-export class SuperAdminPostSignInDto {
+export class PostSignInDto {
   @IsOptional()
   @IsEmail({}, { message: 'email|translation.CLASS_VALIDATION.IS_EMAIL' })
   email?: string;
