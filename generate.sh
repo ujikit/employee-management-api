@@ -2,281 +2,223 @@
 
 set -e
 
-echo "🚀 Generating Create Employee module..."
+echo "🚀 Updating nominal calculation formula in attendance.service.ts..."
 
-BASE_DIR="src/applications/v1/shared/employee"
+BASE_DIR="src/applications/v1/shared/attendance"
 
-mkdir -p "$BASE_DIR/dtos"
-mkdir -p "$BASE_DIR/service"
-mkdir -p "$BASE_DIR/controller"
-mkdir -p "$BASE_DIR/module"
-
-# 1. CREATE EMPLOYEE DTO
-cat << 'EOF' > "$BASE_DIR/dtos/create-employee.dto.ts"
-import { 
-  IsNotEmpty, 
-  IsOptional, 
-  IsString, 
-  IsEmail, 
-  Matches, 
-  MinLength, 
-  MaxLength, 
-  IsNumber, 
-  Max, 
-  IsEnum, 
-  IsArray, 
-  ValidateNested, 
-  IsInt, 
-  Min,
-  IsIn
-} from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class EducationItemDto {
-  @IsNotEmpty({ message: 'education_level|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsString({ message: 'education_level|translation.CLASS_VALIDATION.IS_STRING' })
-  education_level: string;
-
-  @IsNotEmpty({ message: 'school_name|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsString({ message: 'school_name|translation.CLASS_VALIDATION.IS_STRING' })
-  school_name: string;
-
-  @IsNotEmpty({ message: 'graduation_year|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsInt({ message: 'graduation_year|translation.CLASS_VALIDATION.IS_INT' })
-  @Min(1900, { message: 'graduation_year|translation.CLASS_VALIDATION.MIN' })
-  graduation_year: number;
-}
-
-export class CreateEmployeeDto {
-  @IsOptional()
-  @IsString({ message: 'photo_path|translation.CLASS_VALIDATION.IS_STRING' })
-  photo_path?: string;
-
-  @IsNotEmpty({ message: 'nip|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @MinLength(8, { message: 'nip|translation.CLASS_VALIDATION.MIN_LENGTH_8' })
-  @Matches(/^[0-9]+$/, { message: 'nip|translation.CLASS_VALIDATION.NUMERIC_ONLY' })
-  nip: string;
-
-  @IsNotEmpty({ message: 'name|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @Matches(/^[a-zA-Z0-9' ]+$/, { message: 'name|translation.CLASS_VALIDATION.ALPHANUMERIC_SPECIAL' })
-  name: string;
-
-  @IsNotEmpty({ message: 'email|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsEmail({}, { message: 'email|translation.CLASS_VALIDATION.IS_EMAIL' })
-  email: string;
-
-  @IsNotEmpty({ message: 'phone|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @Matches(/^\+[1-9]\d{1,14}$/, { message: 'phone|translation.CLASS_VALIDATION.INTERNATIONAL_FORMAT' })
-  phone: string;
-
-  @IsNotEmpty({ message: 'birth_place|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsString({ message: 'birth_place|translation.CLASS_VALIDATION.IS_STRING' })
-  birth_place: string;
-
-  @IsNotEmpty({ message: 'district_id|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsInt({ message: 'district_id|translation.CLASS_VALIDATION.IS_INT' })
-  district_id: number;
-
-  @IsNotEmpty({ message: 'full_address|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsString({ message: 'full_address|translation.CLASS_VALIDATION.IS_STRING' })
-  full_address: string;
-
-  @IsNotEmpty({ message: 'distance_km|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsNumber({}, { message: 'distance_km|translation.CLASS_VALIDATION.IS_NUMBER' })
-  @Max(99, { message: 'distance_km|translation.CLASS_VALIDATION.MAX_2_DIGITS' })
-  distance_km: number;
-
-  @IsNotEmpty({ message: 'birth_date|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'birth_date|translation.CLASS_VALIDATION.YYYY_MM_DD' })
-  birth_date: string;
-
-  @IsNotEmpty({ message: 'marital_status|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsIn(['kawin', 'tidak kawin'], { message: 'marital_status|translation.CLASS_VALIDATION.IS_IN_MARITAL' })
-  marital_status: string;
-
-  @IsNotEmpty({ message: 'children_count|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsInt({ message: 'children_count|translation.CLASS_VALIDATION.IS_INT' })
-  @Max(99, { message: 'children_count|translation.CLASS_VALIDATION.MAX_2_DIGITS' })
-  children_count: number;
-
-  @IsNotEmpty({ message: 'joined_at|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'joined_at|translation.CLASS_VALIDATION.YYYY_MM_DD' })
-  joined_at: string;
-
-  @IsNotEmpty({ message: 'position_id|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsInt({ message: 'position_id|translation.CLASS_VALIDATION.IS_INT' })
-  position_id: number;
-
-  @IsNotEmpty({ message: 'department_id|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsInt({ message: 'department_id|translation.CLASS_VALIDATION.IS_INT' })
-  department_id: number;
-
-  @IsNotEmpty({ message: 'employment_type|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsIn(['PKWTT', 'PKWT', 'MAGANG'], { message: 'employment_type|translation.CLASS_VALIDATION.IS_IN_TYPE' })
-  employment_type: 'PKWTT' | 'PKWT' | 'MAGANG';
-
-  @IsNotEmpty({ message: 'educations|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsArray({ message: 'educations|translation.CLASS_VALIDATION.IS_ARRAY' })
-  @ValidateNested({ each: true })
-  @Type(() => EducationItemDto)
-  educations: EducationItemDto[];
-
-  @IsNotEmpty({ message: 'status|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsIn(['ACTIVE', 'INACTIVE'], { message: 'status|translation.CLASS_VALIDATION.IS_IN_STATUS' })
-  status: 'ACTIVE' | 'INACTIVE';
-}
-EOF
-
-# 2. UPDATE EMPLOYEE SERVICE
-cat << 'EOF' > "$BASE_DIR/service/employee.service.ts"
+cat << 'EOF' > "$BASE_DIR/service/attendance.service.ts"
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { DatabaseService } from 'src/commons/v1/database/database.service';
 import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
-import { CreateEmployeeDto } from '../dtos/create-employee.dto';
+import { CreateAttendanceItemDto } from '../dtos/create-attendance.dto';
+import { RecalculationResult } from '../interfaces/allowance-recalculation.interface';
 
 @Injectable()
-export class EmployeeService {
+export class AttendanceService {
   constructor(private readonly dataBaseService: DatabaseService) {}
 
-  async getEmployee(req: JwtDto) {
-    const data = await this.dataBaseService.employee.findMany();
+  async getAttendance(req: JwtDto) {
+    const now = new Date();
+    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    const data = await this.dataBaseService.attendance.findMany({
+      where: {
+        attendance_date: {
+          gte: startOfPrevMonth,
+          lte: endOfPrevMonth,
+        },
+      },
+      include: {
+        employee: true,
+      },
+    });
 
     if (!data) {
       throw new BadRequestException('translation.VALIDATION.NOT_FOUND_INTERNAL');
     }
 
-    return {
-      data,
-    };
+    return { data };
   }
 
-  async createEmployee(req: JwtDto, body: CreateEmployeeDto) {
-    const existingNip = await this.dataBaseService.employee.findUnique({
-      where: { nip: body.nip },
-    });
-
-    if (existingNip) {
-      throw new BadRequestException('translation.VALIDATION.NIP_ALREADY_EXISTS');
+  async createAttendance(req: JwtDto, items: CreateAttendanceItemDto[]) {
+    if (!items || items.length === 0) {
+      throw new BadRequestException('translation.VALIDATION.EMPTY_PAYLOAD');
     }
 
-    const existingEmail = await this.dataBaseService.employee.findUnique({
-      where: { email: body.email },
-    });
-
-    if (existingEmail) {
-      throw new BadRequestException('translation.VALIDATION.EMAIL_ALREADY_EXISTS');
-    }
-
-    const { educations, birth_date, joined_at, ...employeeData } = body;
+    const firstItemDate = new Date(items[0].attendance_date);
+    const periodYear = firstItemDate.getFullYear();
+    const periodMonth = firstItemDate.getMonth() + 1;
+    const userId = (req.user as any)?.id || (req as any)?.id || 1;
 
     const result = await this.dataBaseService.$transaction(async (tx) => {
-      const employee = await tx.employee.create({
+      // Step 1: Create attendance_imports entry
+      const importRecord = await tx.attendanceImport.create({
         data: {
-          ...employeeData,
-          birth_date: new Date(birth_date),
-          joined_at: new Date(joined_at),
-          created_by: req.user.id,
+          user_id: userId,
+          original_filename: `manual_import_${periodYear}_${periodMonth}.json`,
+          period_year: periodYear,
+          period_month: periodMonth,
+          status: 'COMPLETED',
+          total_rows: items.length,
+          processed_rows: items.length,
+          started_at: new Date(),
+          finished_at: new Date(),
         },
       });
 
-      if (educations && educations.length > 0) {
-        await tx.employeeEducation.createMany({
-          data: educations.map((edu, index) => ({
-            employee_id: employee.id,
-            education_level: edu.education_level,
-            school_name: edu.school_name,
-            graduation_year: edu.graduation_year,
-            sort_order: index + 1,
-          })),
-        });
+      // Step 2: Insert attendances batch
+      const records = items.map((item) => ({
+        employee_id: item.employee_id,
+        attendance_import_id: importRecord.id,
+        attendance_date: new Date(item.attendance_date),
+        checkin_at: item.checkin_at ? new Date(item.checkin_at) : null,
+        checkout_at: item.checkout_at ? new Date(item.checkout_at) : null,
+        checkin_location: item.checkin_location ?? null,
+        checkout_location: item.checkout_location ?? null,
+        attendance_type: item.attendance_type,
+        duration_hours: item.duration_hours ?? null,
+        status: item.status,
+        verification_status: item.verification_status ?? null,
+        verified_by_role: item.verified_by_role ?? null,
+        remarks: item.remarks ?? null,
+      }));
+
+      const insertedAttendances = await tx.attendance.createMany({
+        data: records,
+      });
+
+      // Step 3: Trigger transport_allowance_details recalculation
+      const recalculation = await this.recalculateTransportAllowance(tx, periodYear, periodMonth);
+
+      return {
+        attendance_import_id: importRecord.id,
+        attendance_inserted: insertedAttendances.count,
+        allowance_recalculation: recalculation,
+      };
+    });
+
+    return { data: result };
+  }
+
+  private async recalculateTransportAllowance(
+    tx: Prisma.TransactionClient,
+    year: number,
+    month: number
+  ): Promise<RecalculationResult | null> {
+    const settings = await tx.transportAllowanceSetting.findFirst({
+      where: { is_active: true },
+    });
+
+    if (!settings) return null;
+
+    let period = await tx.transportAllowancePeriod.findFirst({
+      where: { period_year: year, period_month: month },
+    });
+
+    if (!period) {
+      period = await tx.transportAllowancePeriod.create({
+        data: {
+          period_year: year,
+          period_month: month,
+          status: 'CALCULATED',
+          total_recipients: 0,
+          total_amount: 0,
+        },
+      });
+    }
+
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const attendanceSummary = await tx.attendance.groupBy({
+      by: ['employee_id'],
+      where: {
+        attendance_date: { gte: startOfMonth, lte: endOfMonth },
+        status: 'TERPENUHI',
+        attendance_type: 'HADIR',
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    let totalRecipients = 0;
+    let totalAmount = 0;
+
+    for (const summary of attendanceSummary) {
+      const employee = await tx.employee.findUnique({
+        where: { id: summary.employee_id },
+      });
+
+      if (!employee) continue;
+
+      const attendanceDays = summary._count.id;
+      const originalKm = employee.distance_km ?? 0;
+      const roundedKm = Math.round(originalKm);
+
+      const isEligibleType = employee.employment_type === 'PKWTT';
+      const meetsMinAttendance = attendanceDays >= 19;
+      const meetsMinDistance = roundedKm >= settings.min_km;
+
+      const isEligible = isEligibleType && meetsMinAttendance && meetsMinDistance;
+      const billableKm = Math.min(roundedKm, settings.max_km);
+
+      // ALWAYS calculate nominal regardless of eligibility
+      const nominal = billableKm * settings.base_fare * attendanceDays;
+
+      if (isEligible) {
+        totalRecipients += 1;
+        totalAmount += nominal;
       }
 
-      return tx.employee.findUnique({
-        where: { id: employee.id },
-        include: {
-          employee_educations: true,
-          position: true,
-          department: true,
-          district: {
-            include: {
-              regency: {
-                include: {
-                  province: true,
-                },
-              },
-            },
+      await tx.transportAllowanceDetail.upsert({
+        where: {
+          period_id_employee_id: {
+            period_id: period.id,
+            employee_id: employee.id,
           },
         },
+        update: {
+          base_fare: settings.base_fare,
+          original_km: originalKm,
+          rounded_km: roundedKm,
+          attendance_days: attendanceDays,
+          nominal: nominal,
+          eligibility_status: isEligible ? 'ELIGIBLE' : 'INELIGIBLE',
+        },
+        create: {
+          period_id: period.id,
+          employee_id: employee.id,
+          base_fare: settings.base_fare,
+          original_km: originalKm,
+          rounded_km: roundedKm,
+          attendance_days: attendanceDays,
+          nominal: nominal,
+          eligibility_status: isEligible ? 'ELIGIBLE' : 'INELIGIBLE',
+        },
       });
+    }
+
+    const updatedPeriod = await tx.transportAllowancePeriod.update({
+      where: { id: period.id },
+      data: {
+        total_recipients: totalRecipients,
+        total_amount: totalAmount,
+        status: 'CALCULATED',
+      },
     });
 
     return {
-      data: result,
+      period_year: updatedPeriod.period_year,
+      period_month: updatedPeriod.period_month,
+      total_recipients: updatedPeriod.total_recipients,
+      total_amount: updatedPeriod.total_amount,
+      status: updatedPeriod.status,
     };
   }
 }
 EOF
 
-# 3. UPDATE EMPLOYEE CONTROLLER
-cat << 'EOF' > "$BASE_DIR/controller/employee.controller.ts"
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Request,
-  UseFilters,
-  UseGuards,
-  UseInterceptors
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
-import { FilterException } from 'src/commons/v1/interceptors/filter-exception';
-import { ResponseInterceptor } from 'src/commons/v1/interceptors/response.interceptor';
-import { RolesGuard } from 'src/commons/v1/jwt/roles.guard';
-import { EmployeeService } from '../service/employee.service';
-import { CreateEmployeeDto } from '../dtos/create-employee.dto';
-
-@Controller({ path: '', version: '1' })
-@UseInterceptors(ResponseInterceptor)
-@UseFilters(FilterException)
-export class EmployeeController {
-  constructor(private readonly employeeService: EmployeeService) {}
-
-  @Get('all')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async getEmployee(@Request() req: JwtDto) {
-    return await this.employeeService.getEmployee(req);
-  }
-
-  @Post('create')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async createEmployee(@Request() req: JwtDto, @Body() body: CreateEmployeeDto) {
-    return await this.employeeService.createEmployee(req, body);
-  }
-}
-EOF
-
-# 4. UPDATE EMPLOYEE MODULE
-cat << 'EOF' > "$BASE_DIR/module/employee.module.ts"
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { JwtStrategy } from 'src/commons/v1/jwt/jwt.strategy';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
-import { EmployeeController } from '../controller/employee.controller';
-import { EmployeeService } from '../service/employee.service';
-
-@Module({
-  imports: [ConfigModule],
-  controllers: [EmployeeController],
-  providers: [
-    EmployeeService,
-    DatabaseService,
-    JwtStrategy,
-  ],
-})
-export class EmployeeModule {}
-EOF
-
-chmod +x "$BASE_DIR/service/employee.service.ts"
-echo "✅ Done! Create Employee features generated successfully in $BASE_DIR."
+echo "✅ Success! Nominal is now always calculated as billableKm * settings.base_fare * attendanceDays."
