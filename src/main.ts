@@ -1,7 +1,6 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as bodyParser from 'body-parser';
-
 import { useContainer } from 'class-validator';
 import { Logger as PinoNestLogger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
@@ -10,17 +9,17 @@ import { BigIntInterceptor } from './commons/v1/interceptors/big-int.interceptor
 import { MergeParamAndBodyInterceptor } from './commons/v1/interceptors/merge-param-body.interceptor';
 import { instrumentFunctionLogging } from './commons/v1/logging/function-logging';
 import { traceContext } from './commons/v1/logging/trace-context';
+import { setupSwagger } from './commons/v1/swagger/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  // Route Nest's own Logger (framework + `new Logger()` in services) through
-  // the shared async pino instance.
+
+  // Route Nest's own Logger through Pino
   app.useLogger(app.get(PinoNestLogger));
 
   app.enableCors();
-  // Opens the trace context for every /api/v1 request: generates the
-  // traceId (exposed as root-level traceId, logged as trace_id) and makes it
-  // reachable from any function via AsyncLocalStorage.
+
+  // Trace Context for /api/v1 requests
   app.use((req, res, next) => {
     if (String(req.url ?? '').startsWith('/api/v1')) {
       req.traceId = randomUUID();
@@ -29,21 +28,31 @@ async function bootstrap() {
       next();
     }
   });
-  // Wraps all DI provider methods to log input/output/duration per call
-  // (only active inside a trace context, i.e. /api/v1 requests).
+
+  // Instrument function logging if enabled
   if (process.env.FUNCTION_LOGGING === 'true') {
     instrumentFunctionLogging(app);
   }
+
+  // Body Parser Limits
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+  // Global Route Prefix & Versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: ['1'],
   });
-  app.useGlobalInterceptors(new BigIntInterceptor());
 
+  // Setup Swagger Documentation at /docs
+  setupSwagger(app);
+
+  // Global Interceptors
+  app.useGlobalInterceptors(new BigIntInterceptor());
   app.useGlobalInterceptors(new MergeParamAndBodyInterceptor());
+
+  // Global Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -51,12 +60,18 @@ async function bootstrap() {
       forbidNonWhitelisted: false,
     }),
   );
+
+  // Class Validator Container
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📄 Swagger documentation available at: http://localhost:${port}/docs`);
 }
 
-// Prevent unhandled rejections (e.g. from Puppeteer ErrorEvent) from crashing the process
+// Prevent unhandled rejections from crashing process
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED REJECTION - caught at process level]', reason);
 });
