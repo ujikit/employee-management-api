@@ -9,20 +9,14 @@ import { RecalculationResult } from '../interfaces/allowance-recalculation.inter
 export class AttendanceService {
   constructor(private readonly dataBaseService: DatabaseService) {}
 
+  // 1. Fetch ALL recorded attendance data
   async getAttendance(req: JwtDto) {
-    const now = new Date();
-    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-
     const data = await this.dataBaseService.attendance.findMany({
-      where: {
-        attendance_date: {
-          gte: startOfPrevMonth,
-          lte: endOfPrevMonth,
-        },
-      },
       include: {
         employee: true,
+      },
+      orderBy: {
+        attendance_date: 'desc',
       },
     });
 
@@ -33,24 +27,37 @@ export class AttendanceService {
     return { data };
   }
 
+  // 2. Create Attendance Batch and Trigger Recalculation
   async createAttendance(req: JwtDto, items: CreateAttendanceItemDto[]) {
     if (!items || items.length === 0) {
       throw new BadRequestException('translation.VALIDATION.EMPTY_PAYLOAD');
     }
 
     const firstItemDate = new Date(items[0].attendance_date);
-    const periodYear = firstItemDate.getFullYear();
-    const periodMonth = firstItemDate.getMonth() + 1;
+    const primaryYear = firstItemDate.getFullYear();
+    const primaryMonth = firstItemDate.getMonth() + 1;
     const userId = (req.user as any)?.id || (req as any)?.id || 1;
 
+    // Collect all unique Year-Month combinations in payload
+    const periodMap = new Map<string, { year: number; month: number }>();
+    items.forEach((item) => {
+      const d = new Date(item.attendance_date);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const key = `${y}-${m}`;
+      if (!periodMap.has(key)) {
+        periodMap.set(key, { year: y, month: m });
+      }
+    });
+
     const result = await this.dataBaseService.$transaction(async (tx) => {
-      // Step 1: Create attendance_imports entry
+      // Step 1: Create attendance_imports record
       const importRecord = await tx.attendanceImport.create({
         data: {
           user_id: userId,
-          original_filename: `manual_import_${periodYear}_${periodMonth}.json`,
-          period_year: periodYear,
-          period_month: periodMonth,
+          original_filename: `manual_import_${primaryYear}_${primaryMonth}.json`,
+          period_year: primaryYear,
+          period_month: primaryMonth,
           status: 'COMPLETED',
           total_rows: items.length,
           processed_rows: items.length,
@@ -80,19 +87,26 @@ export class AttendanceService {
         data: records,
       });
 
-      // Step 3: Trigger transport_allowance_details recalculation
-      const recalculation = await this.recalculateTransportAllowance(tx, periodYear, periodMonth);
+      // Step 3: Trigger transport allowance recalculation for all affected periods
+      const recalculations: RecalculationResult[] = [];
+      for (const period of periodMap.values()) {
+        const recalcResult = await this.recalculateTransportAllowance(tx, period.year, period.month);
+        if (recalcResult) {
+          recalculations.push(recalcResult);
+        }
+      }
 
       return {
         attendance_import_id: importRecord.id,
         attendance_inserted: insertedAttendances.count,
-        allowance_recalculation: recalculation,
+        allowance_recalculations: recalculations,
       };
     });
 
     return { data: result };
   }
 
+  // 3. Recalculates transport_allowance_details & transport_allowance_periods based on strict business rules
   private async recalculateTransportAllowance(
     tx: Prisma.TransactionClient,
     year: number,
@@ -123,6 +137,7 @@ export class AttendanceService {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
+    // Group records by employee where status = 'TERPENUHI' and attendance_type = 'HADIR'
     const attendanceSummary = await tx.attendance.groupBy({
       by: ['employee_id'],
       where: {
@@ -146,18 +161,25 @@ export class AttendanceService {
       if (!employee) continue;
 
       const attendanceDays = summary._count.id;
-      const originalKm = employee.distance_km ?? 0;
+      const originalKm = Number(employee.distance_km ?? 0);
+      
+      // Rounding Rule: < 0.5 rounds down, >= 0.5 rounds up
       const roundedKm = Math.round(originalKm);
 
+      // Business Rules Checks
       const isEligibleType = employee.employment_type === 'PKWTT';
       const meetsMinAttendance = attendanceDays >= 19;
-      const meetsMinDistance = roundedKm >= settings.min_km;
+      
+      // Rule: > 5 km (5 km or less gets 0)
+      const meetsMinDistance = roundedKm > Number(settings.min_km);
 
       const isEligible = isEligibleType && meetsMinAttendance && meetsMinDistance;
-      const billableKm = Math.min(roundedKm, settings.max_km);
 
-      // ALWAYS calculate nominal regardless of eligibility
-      const nominal = billableKm * settings.base_fare * attendanceDays;
+      // Distance capped at max_km (25 km)
+      const billableKm = Math.min(roundedKm, Number(settings.max_km));
+
+      // Nominal calculated ONLY if eligible, otherwise 0
+      const nominal = isEligible ? billableKm * Number(settings.base_fare) * attendanceDays : 0;
 
       if (isEligible) {
         totalRecipients += 1;

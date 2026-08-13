@@ -9,7 +9,11 @@ export class AllowanceDetailService {
 
   async getAllowanceDetail(req: JwtDto) {
     const id = req.user.id;
-    const data = await this.dataBaseService.transportAllowanceDetail.findMany();
+    const data = await this.dataBaseService.transportAllowanceDetail.findMany({
+      include: {
+        employee: true,
+      },
+    });
 
     if (!data) {
       throw new BadRequestException('translation.VALIDATION.NOT_FOUND_INTERNAL');
