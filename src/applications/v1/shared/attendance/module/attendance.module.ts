@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtStrategy } from 'src/commons/v1/jwt/jwt.strategy';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
+import { DatabaseService } from '../../../../../commons/v1/database/database.service';
+import { JwtStrategy } from '../../../../../commons/v1/jwt/jwt.strategy';
 import { AttendanceController } from '../controller/attendance.controller';
 import { AttendanceService } from '../service/attendance.service';
 
@@ -14,4 +14,4 @@ import { AttendanceService } from '../service/attendance.service';
     JwtStrategy,
   ],
 })
-export class AttendanceModule {}
+export class AttendanceModule { }

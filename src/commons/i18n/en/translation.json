@@ -1,0 +1,15 @@
+{
+  "CLASS_VALIDATION": {
+    "IS_NOT_EMPTY": "Field must not be empty",
+    "IS_INT": "Field must be an integer",
+    "YYYY_MM_DD": "Date format must be YYYY-MM-DD",
+    "IS_STRING": "Field must be a string",
+    "IS_IN_LOCATION": "Invalid location selected",
+    "IS_IN_ATTENDANCE_TYPE": "Invalid attendance type",
+    "IS_NUMBER": "Field must be a number",
+    "IS_IN_STATUS": "Invalid status",
+    "IS_IN_VERIFICATION": "Invalid verification status",
+    "IS_IN_ROLE": "Invalid role",
+    "IS_ARRAY": "Field must be an array"
+  }
+}

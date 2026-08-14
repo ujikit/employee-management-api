@@ -2,10 +2,10 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
-import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
-import { exclude } from 'src/commons/v1/helpers/exclude';
-import { NotifyEngineService } from 'src/commons/v1/notify/notify-engine.service';
+import { DatabaseService } from '../../../../../commons/v1/database/database.service';
+import { JwtDto } from '../../../../../commons/v1/dtos/unique-jwt-owner.dto';
+import { exclude } from '../../../../../commons/v1/helpers/exclude';
+import { NotifyEngineService } from '../../../../../commons/v1/notify/notify-engine.service';
 import { PostSignInDto } from '../dtos/post-signin.dto';
 import { PostSignInVerifyOtpDto } from '../dtos/post-signinVerifyOtp.dto';
 
