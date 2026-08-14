@@ -1,18 +1,17 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { 
-  IsNotEmpty, 
-  IsOptional, 
-  IsString, 
-  IsInt, 
-  IsNumber, 
-  IsEnum,
-  IsIn, 
-  Matches,
+import {
   IsArray,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
   ValidateNested
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AttendanceType, AttendanceStatus } from '@prisma/client';
 
 export class CreateAttendanceItemDto {
   @ApiProperty({ example: 1, description: 'ID of the employee' })
@@ -50,20 +49,20 @@ export class CreateAttendanceItemDto {
   @IsIn(['Gedung Utama', 'Gedung A', 'Gedung B'], { message: 'checkout_location|translation.CLASS_VALIDATION.IS_IN_LOCATION' })
   checkout_location?: string;
 
-  @ApiProperty({ enum: AttendanceType, example: AttendanceType.HADIR })
+  @ApiProperty({ enum: ['HADIR', 'CUTI', 'IZIN', 'UNPAID_LEAVE'], example: 'HADIR' })
   @IsNotEmpty({ message: 'attendance_type|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsEnum(AttendanceType, { message: 'attendance_type|translation.CLASS_VALIDATION.IS_IN_ATTENDANCE_TYPE' })
-  attendance_type: AttendanceType;
+  @IsEnum(['HADIR', 'CUTI', 'IZIN', 'UNPAID_LEAVE'], { message: 'attendance_type|translation.CLASS_VALIDATION.IS_IN_ATTENDANCE_TYPE' })
+  attendance_type: ['HADIR', 'CUTI', 'IZIN', 'UNPAID_LEAVE'];
 
   @ApiPropertyOptional({ example: 9 })
   @IsOptional()
   @IsNumber({}, { message: 'duration_hours|translation.CLASS_VALIDATION.IS_NUMBER' })
   duration_hours?: number;
 
-  @ApiProperty({ enum: AttendanceStatus, example: AttendanceStatus.TERPENUHI })
+  @ApiProperty({ enum: ['TERPENUHI', 'TIDAK_TERPENUHI'], example: 'TERPENUHI' })
   @IsNotEmpty({ message: 'status|translation.CLASS_VALIDATION.IS_NOT_EMPTY' })
-  @IsEnum(AttendanceStatus, { message: 'status|translation.CLASS_VALIDATION.IS_IN_STATUS' })
-  status: AttendanceStatus;
+  @IsEnum(['TERPENUHI', 'TIDAK_TERPENUHI'], { message: 'status|translation.CLASS_VALIDATION.IS_IN_STATUS' })
+  status: ['TERPENUHI', 'TIDAK_TERPENUHI'];
 
   @ApiPropertyOptional({ example: 'Disetujui', enum: ['Disetujui', 'Ditolak'] })
   @IsOptional()

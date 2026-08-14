@@ -1,10 +1,19 @@
 import { Module } from '@nestjs/common';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
+import { ConfigModule } from '@nestjs/config';
+import { JwtStrategy } from 'src/commons/v1/jwt/jwt.strategy';
+import { NotifyEngineService } from 'src/commons/v1/notify/notify-engine.service';
 import { AuthenticationController } from '../controller/authentication.controller';
 import { AuthenticationService } from '../service/authentication.service';
 
 @Module({
+  imports: [
+    ConfigModule,
+  ],
   controllers: [AuthenticationController],
-  providers: [AuthenticationService, DatabaseService],
+  providers: [
+    AuthenticationService,
+    NotifyEngineService,
+    JwtStrategy,
+  ],
 })
-export class AuthenticationModule {}
+export class AuthenticationModule { }

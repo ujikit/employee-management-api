@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
-import { FilterException } from 'src/commons/v1/interceptors/filter-exception';
-import { ResponseInterceptor } from 'src/commons/v1/interceptors/response.interceptor';
-import { RolesGuard } from 'src/commons/v1/jwt/roles.guard';
+import { JwtDto } from '../../../../../commons/v1/dtos/unique-jwt-owner.dto';
+import { FilterException } from '../../../../../commons/v1/interceptors/filter-exception';
+import { ResponseInterceptor } from '../../../../../commons/v1/interceptors/response.interceptor';
+import { RolesGuard } from '../../../../../commons/v1/jwt/roles.guard';
 import { CreateAttendanceBatchDto } from '../dtos/create-attendance.dto';
 import { AttendanceService } from '../service/attendance.service';
 

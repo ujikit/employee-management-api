@@ -4,6 +4,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   AcceptLanguageResolver,
   I18nModule,
@@ -24,21 +25,20 @@ import { EmailService } from './commons/v1/mail/service/email.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
-    // One JSON line per /api/v1 request on completion (method, url, status,
-    // responseTime, redacted body), written asynchronously via the shared
-    // pino instance. Replaces the old HttpLoggingInterceptor, whose
-    // synchronous console.log of full payloads was adding ~2s per request.
-    // Response bodies are no longer logged — correlate via trace_id and read
-    // the function/error lines instead.
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      url: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: process.env.ENVIRONMENT === "development" ? false : true, // Requires valid SSL certificate from TiDB
+      },
+    }),
     LoggerModule.forRoot({
       pinoHttp: {
         logger,
         autoLogging: process.env.HTTP_LOGGING === 'true' && {
           ignore: (req) => !String(req.url ?? '').startsWith('/api/v1'),
         },
-        // Reuse the traceId set by the /api/v1 middleware in main.ts so the
-        // HTTP line, function lines, and the client-visible traceId match.
         genReqId: (req) =>
           (req as { traceId?: string }).traceId ?? randomUUID(),
         customLogLevel: (req, res, err) =>
@@ -54,10 +54,6 @@ import { EmailService } from './commons/v1/mail/service/email.service';
             body?: unknown;
             _propsBound?: boolean;
           };
-          // pino-http calls this twice: at request start (bound into the
-          // child logger, before body-parsing/auth) and at response finish.
-          // Binding on the first call duplicated every key in the line with
-          // stale values — skip it and emit only on the finish call.
           if (!r._propsBound) {
             r._propsBound = true;
             return {};
@@ -71,8 +67,6 @@ import { EmailService } from './commons/v1/mail/service/email.service';
         },
         serializers: {
           req: (req) => ({ method: req.method, url: req.url }),
-          // `payload` is the response envelope stashed by ResponseInterceptor;
-          // 4xx/5xx bodies always logged, 2xx only when small (see helper).
           res: (res) => ({
             statusCode: res.statusCode,
             body: responseBodyPreview(
@@ -90,49 +84,59 @@ import { EmailService } from './commons/v1/mail/service/email.service';
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
         connection: {
-          host: config.get<string>('REDIS_HOST') ?? 'localhost',
-          port: Number(config.get<string>('REDIS_PORT') ?? '6379'),
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: Number(config.get<string>('REDIS_PORT', '6379')),
           password: config.get<string>('REDIS_PASSWORD') || undefined,
-          db: Number(config.get<string>('REDIS_DB') ?? '0'),
+          db: Number(config.get<string>('REDIS_DB', '0')),
         },
       }),
     }),
-    BullBoardModule.forRoot({
-      route: '/queues',
-      adapter: ExpressAdapter,
-    }),
+    // Only mount BullBoard dashboard if not running on Vercel Serverless
+    ...(process.env.VERCEL
+      ? []
+      : [
+        BullBoardModule.forRoot({
+          route: '/queues',
+          adapter: ExpressAdapter,
+        }),
+      ]),
     I18nModule.forRoot({
       fallbackLanguage: 'zh',
       loaderOptions: {
-        path: path.join(process.cwd(), 'src', 'commons'),
-        watch: true,
+        path: path.join(__dirname, 'commons/i18n/'),
+        watch: false,
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },
         AcceptLanguageResolver,
       ],
     }),
-    MailerModule.forRoot({
-      transport: {
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: 'fauzizaki15@gmail.com',
-          pass: 'hiok dtop lgij omuz',
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>('MAIL_HOST'),
+          port: Number(config.get<string>('MAIL_PORT')),
+          secure: process.env.ENVIRONMENT === "development" ? false : true,
+          auth: {
+            user: config.get<string>('MAIL_USER'),
+            pass: config.get<string>('MAIL_PASS'),
+          },
+          tls: {
+            rejectUnauthorized: process.env.ENVIRONMENT === "development" ? false : true, // Prevents certificate verification errors for SMTP
+          },
         },
-        // logger: true,
-        // debug: true,
-      },
-      defaults: {
-        from: '"Employee Management" <baba@gmail.com>',
-      },
+        defaults: {
+          from: config.get<string>(
+            'MAIL_FROM',
+            '"Employee Management" <no-reply@example.com>',
+          ),
+        },
+      }),
     }),
   ],
-  providers: [
-    OptionalAuthGuard,
-    EmailService,
-  ],
+  providers: [OptionalAuthGuard, EmailService],
   exports: [EmailService],
 })
 export class AppModule { }

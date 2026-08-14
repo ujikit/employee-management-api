@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
-import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
+import { DatabaseService } from '../../../../../commons/v1/database/database.service';
+import { JwtDto } from '../../../../../commons/v1/dtos/unique-jwt-owner.dto';
 
 @Injectable()
 export class AllowanceSettingService {

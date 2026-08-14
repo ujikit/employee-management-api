@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { DatabaseService } from 'src/commons/v1/database/database.service';
-import { JwtDto } from 'src/commons/v1/dtos/unique-jwt-owner.dto';
+import { DatabaseService } from '../../../../../commons/v1/database/database.service';
+import { JwtDto } from '../../../../../commons/v1/dtos/unique-jwt-owner.dto';
 import { CreateAttendanceItemDto } from '../dtos/create-attendance.dto';
 import { RecalculationResult } from '../interfaces/allowance-recalculation.interface';
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly dataBaseService: DatabaseService) {}
+  constructor(private readonly dataBaseService: DatabaseService) { }
 
   // 1. Fetch ALL recorded attendance data
   async getAttendance(req: JwtDto) {
@@ -84,7 +84,7 @@ export class AttendanceService {
       }));
 
       const insertedAttendances = await tx.attendance.createMany({
-        data: records,
+        data: records as any,
       });
 
       // Step 3: Trigger transport allowance recalculation for all affected periods
@@ -162,14 +162,14 @@ export class AttendanceService {
 
       const attendanceDays = summary._count.id;
       const originalKm = Number(employee.distance_km ?? 0);
-      
+
       // Rounding Rule: < 0.5 rounds down, >= 0.5 rounds up
       const roundedKm = Math.round(originalKm);
 
       // Business Rules Checks
       const isEligibleType = employee.employment_type === 'PKWTT';
       const meetsMinAttendance = attendanceDays >= 19;
-      
+
       // Rule: > 5 km (5 km or less gets 0)
       const meetsMinDistance = roundedKm > Number(settings.min_km);
 

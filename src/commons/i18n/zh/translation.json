@@ -1,0 +1,15 @@
+{
+  "CLASS_VALIDATION": {
+    "IS_NOT_EMPTY": "字段不能为空",
+    "IS_INT": "字段必须是整数",
+    "YYYY_MM_DD": "日期格式必须为 YYYY-MM-DD",
+    "IS_STRING": "字段必须是字符串",
+    "IS_IN_LOCATION": "无效的位置选择",
+    "IS_IN_ATTENDANCE_TYPE": "无效的考勤类型",
+    "IS_NUMBER": "字段必须是数字",
+    "IS_IN_STATUS": "无效的状态",
+    "IS_IN_VERIFICATION": "无效的验证状态",
+    "IS_IN_ROLE": "无效的角色",
+    "IS_ARRAY": "字段必须是数组"
+  }
+}
