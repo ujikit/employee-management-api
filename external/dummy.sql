@@ -1,10 +1,12 @@
 show tables;
+select * from login_otps;
 select * from attendances;
 select * from transport_allowance_details;
 select * from transport_allowance_periods;
 select * from transport_allowance_settings;
 
 DELETE from attendances;
+DELETE from login_otps;
 DELETE from transport_allowance_details;
 DELETE from transport_allowance_periods;
 

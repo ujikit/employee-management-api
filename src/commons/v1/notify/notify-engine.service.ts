@@ -1,6 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, Logger } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import { buildEmailHtml, EmailLang, ensureHtml } from './email-template.helper';
 
 export type Lang = 'en' | 'zh';
@@ -19,10 +18,8 @@ type CustomerContact = {
 export class NotifyEngineService {
   private readonly logger = new Logger(NotifyEngineService.name);
   private readonly brandName = process.env.EMAIL_BRAND_NAME || 'EmployeeManagement';
-  private readonly defaultFrom = process.env.EMAIL_FROM || 'support@test.app';
 
   constructor(
-    private readonly db: DatabaseService,
     private readonly mailer: MailerService,
   ) { }
 

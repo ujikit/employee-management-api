@@ -1,14 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private readonly db: DatabaseService,
   ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -18,13 +13,6 @@ export class RolesGuard implements CanActivate {
       request.user?.language ??
       request.headers['x-lang'] ?? 'zh'
     ).toLowerCase();
-
-
-
-
-
-
-
     return true;
   }
 }
@@ -40,7 +28,6 @@ export interface JwtPayload {
 export class OptionalAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly config: ConfigService,
   ) { }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {

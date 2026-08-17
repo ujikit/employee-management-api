@@ -18,7 +18,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(request: Request, payload) {
     let user: User | null = null;
-    let storeId;
 
     if (payload.id) {
       user = await this.dataBaseService.user.findUnique({

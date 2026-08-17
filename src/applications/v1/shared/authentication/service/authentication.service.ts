@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Role, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { DatabaseService } from '../../../../../commons/v1/database/database.service';
 import { JwtDto } from '../../../../../commons/v1/dtos/unique-jwt-owner.dto';
@@ -11,17 +11,11 @@ import { PostSignInVerifyOtpDto } from '../dtos/post-signinVerifyOtp.dto';
 
 @Injectable()
 export class AuthenticationService {
-  constructor(private readonly dataBaseService: DatabaseService,
+  constructor(
+    private readonly dataBaseService: DatabaseService,
     private readonly jwtService: JwtService,
     private readonly notify: NotifyEngineService
   ) { }
-
-
-
-
-
-
-
 
   private async sendSuperAdminTemplate(
     name: string,
@@ -45,66 +39,21 @@ export class AuthenticationService {
     }
   }
 
-
-  async signIn(body: PostSignInDto) {
-    const { email, phone, phone_code, password } = body;
-
-    if (!email && (!phone || !phone_code)) {
-      throw new BadRequestException('translation.VALIDATION.EMAIL_OR_PHONE_REQUIRED');
-    }
-
-    let user: User | null = null;
-    let role: Role | null = null;
-
-    if (email) {
-      user = await this.dataBaseService.user.findUnique({ where: { email } });
-    }
-
-    if (!user)
-      throw new UnauthorizedException(
-        'translation.VALIDATION.WRONG_CREDENTIALS',
-      );
-    const isMatch = await bcrypt.compare(password || '', user.password);
-
-    if (!isMatch)
-      throw new UnauthorizedException(
-        'translation.VALIDATION.WRONG_CREDENTIALS',
-      );
-
-    const payload = {
-      ...exclude(user, [
-        'password',
-        'created_at',
-        'updated_at',
-        'deleted_at',
-      ]),
-    };
-
-    role = await this.dataBaseService.role.findUnique({ where: { id: user.id } });
-
-
-    return {
-      data: {
-        ...exclude(user, ['password']),
-        role: role?.code,
-        access_token: await this.jwtService.signAsync(payload, {
-          expiresIn: '7d',
-        }),
-      },
-    };
-  }
-
   async signInGenerateOtp(
     body: PostSignInDto,
     lang: string,
   ) {
-    const { email, phone, phone_code, password } = body;
+    const { email, password } = body;
 
     let user: User | null = null;
 
     if (email) {
       user = await this.dataBaseService.user.findFirst({
-        where: { email, deleted_at: null },
+        where: {
+          email,
+          deleted_at: null,
+          status: 'ACTIVE'
+        },
       });
     }
 
@@ -121,8 +70,8 @@ export class AuthenticationService {
       );
     }
 
-    const result = await this.dataBaseService.$transaction(async () => {
-      await this.dataBaseService.loginOtp.updateMany({
+    const result = await this.dataBaseService.$transaction(async (tx) => {
+      await tx.loginOtp.updateMany({
         where: {
           user_id: user.id,
         },
@@ -131,20 +80,29 @@ export class AuthenticationService {
         },
       });
 
+      // Delete previous unverified OTP records for this email
+      await tx.loginOtp.deleteMany({
+        where: {
+          sent_to: email || '',
+          verified_at: null,
+        },
+      });
+
       let code;
-      if ((process.env.DEPLOYMENT_ENVIRONMENT || 'develop') === 'develop') {
+      if ((process.env.ENVIRONMENT || 'development') === 'development') {
         code = '0000';
       } else {
         code = (
           Math.floor(Math.random() * (9999 - 1234 + 1)) + 1234
         ).toString();
       }
-      const verification = await this.dataBaseService.loginOtp.create({
+
+      const verification = await tx.loginOtp.create({
         data: {
           user_id: user.id,
           otp_hash: code,
           sent_to: email || '',
-          expires_at: new Date(Date.now() + 3 * 60 * 1000),
+          expires_at: new Date(Date.now() + 3 * 60 * 1000), // 3 minutes
         },
       });
 
@@ -206,7 +164,7 @@ export class AuthenticationService {
     };
 
     const token = await this.jwtService.signAsync(payload, {
-      expiresIn: '1d',
+      expiresIn: '7d',
     });
 
     return {
@@ -216,8 +174,6 @@ export class AuthenticationService {
       },
     };
   }
-
-
 
   async getMe(req: JwtDto) {
     const id = req.user.id;
@@ -231,89 +187,8 @@ export class AuthenticationService {
 
     return {
       data: {
-        ...exclude(user, ['password']),  // ✅ guaranteed non-null
+        ...exclude(user, ['password']),
       },
     };
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-};
+}

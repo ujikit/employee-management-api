@@ -1,25 +1,29 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDate, IsNumber, IsOptional, Min } from 'class-validator';
 
-export class AllowanceSettingModuleDto {
-  @ApiPropertyOptional({ example: 'user@example.com' })
+export class UpdateAllowanceSettingDto {
+  @ApiPropertyOptional({ example: 50000, description: 'Base transport allowance fare' })
   @IsOptional()
-  @IsEmail({}, { message: 'email|translation.CLASS_VALIDATION.IS_EMAIL' })
-  email?: string;
+  @IsNumber({}, { message: 'base_fare|translation.CLASS_VALIDATION.IS_NUMBER' })
+  @Min(0, { message: 'base_fare|translation.CLASS_VALIDATION.MIN_ZERO' })
+  base_fare?: number;
 
-  @ApiPropertyOptional({ example: '81234567890' })
+  @ApiPropertyOptional({ example: '2026-01-01T00:00:00.000Z', description: 'Effective start date' })
   @IsOptional()
-  @IsString({ message: 'phone|translation.CLASS_VALIDATION.IS_STRING' })
-  phone?: string;
+  @Type(() => Date)
+  @IsDate({ message: 'effective_start|translation.CLASS_VALIDATION.IS_DATE' })
+  effective_start?: Date;
 
-  @ApiPropertyOptional({ example: '+62' })
-  @ValidateIf(o => !!o.phone)
-  @IsNotEmpty({ message: 'phone_code|translation.CLASS_VALIDATION.IS_NOT_EMPTY_PHONE_CODE' })
-  @IsString({ message: 'phone_code|translation.CLASS_VALIDATION.IS_STRING' })
-  phone_code?: string;
+  @ApiPropertyOptional({ example: 0, description: 'Minimum distance in kilometers' })
+  @IsOptional()
+  @IsNumber({}, { message: 'min_km|translation.CLASS_VALIDATION.IS_NUMBER' })
+  @Min(0, { message: 'min_km|translation.CLASS_VALIDATION.MIN_ZERO' })
+  min_km?: number;
 
-  @IsNotEmpty({ message: 'password|translation.CLASS_VALIDATION.IS_NOT_EMPTY_PASSWORD' })
-  password: string | undefined;
-
-  otp_code: string | undefined;
+  @ApiPropertyOptional({ example: 50, description: 'Maximum distance in kilometers' })
+  @IsOptional()
+  @IsNumber({}, { message: 'max_km|translation.CLASS_VALIDATION.IS_NUMBER' })
+  @Min(0, { message: 'max_km|translation.CLASS_VALIDATION.MIN_ZERO' })
+  max_km?: number;
 }

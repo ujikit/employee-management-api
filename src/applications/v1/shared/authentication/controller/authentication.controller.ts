@@ -24,20 +24,20 @@ import { AuthenticationService } from '../service/authentication.service';
 @UseInterceptors(ResponseInterceptor)
 @UseFilters(FilterException)
 export class AuthenticationController {
-  constructor(private readonly superAdminService: AuthenticationService) { }
+  constructor(private readonly authenticationService: AuthenticationService) { }
 
   @ApiOperation({ summary: 'Sign in and generate OTP' })
   @Post('signin')
   @HttpCode(200)
   async signIn(@Body() body: PostSignInDto) {
-    return await this.superAdminService.signInGenerateOtp(body, 'en');
+    return await this.authenticationService.signInGenerateOtp(body, 'en');
   }
 
   @ApiOperation({ summary: 'Verify OTP for sign in' })
   @Post('signin-verify-otp')
   @HttpCode(200)
   async internalSignInVerifyOtp(@Body() body: PostSignInVerifyOtpDto) {
-    return await this.superAdminService.signInVerifyOtp(body);
+    return await this.authenticationService.signInVerifyOtp(body);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -45,6 +45,6 @@ export class AuthenticationController {
   @Get('me')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   async getMe(@Request() req: JwtDto) {
-    return await this.superAdminService.getMe(req);
+    return await this.authenticationService.getMe(req);
   }
 }

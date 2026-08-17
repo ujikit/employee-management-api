@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
 
-export class GetEmployeeQueryDto {
+export class GetUsersQueryDto {
   @ApiPropertyOptional({ example: 1, default: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -17,12 +17,12 @@ export class GetEmployeeQueryDto {
   @Min(1, { message: 'limit|translation.CLASS_VALIDATION.MIN_ONE' })
   limit?: number = 10;
 
-  @ApiPropertyOptional({ example: 'id', description: 'Allowed fields: id, nip, name, position_id, joined_at' })
+  @ApiPropertyOptional({ example: 'id', description: 'Allowed fields: id, name, username, status' })
   @IsOptional()
-  @IsIn(['id', 'nip', 'name', 'position_id', 'joined_at'], {
+  @IsIn(['id', 'name', 'username', 'status'], {
     message: 'sort_by|translation.CLASS_VALIDATION.IS_IN',
   })
-  sort_by?: 'id' | 'nip' | 'name' | 'position_id' | 'joined_at' = 'id';
+  sort_by?: 'id' | 'name' | 'username' | 'status' = 'id';
 
   @ApiPropertyOptional({ example: 'asc', description: 'Allowed order: asc, desc' })
   @IsOptional()
